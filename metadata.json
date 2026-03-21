@@ -1,0 +1,5 @@
+{
+  "name": "Extraction Shooter 2D",
+  "description": "A top-down 2D extraction shooter game. Use WASD to move, click the Fire button to auto-aim and shoot enemies, collect coins, and reach the extraction zone to win.",
+  "requestFramePermissions": []
+}
