@@ -1,5 +1,7 @@
-import { MAP_WIDTH, MAP_HEIGHT, GameState } from '../types';
+import { MAP_WIDTH, MAP_HEIGHT, GameState, Chest } from '../types';
 import { spawnInitialEnemies } from './enemies/spawner';
+import { createInventory } from './inventory';
+import { generateQuest } from './quest';
 
 export const createInitialState = (): GameState => {
   let extX = 0;
@@ -33,14 +35,47 @@ export const createInitialState = (): GameState => {
     }
   }
 
+  const chests: Chest[] = [];
+  for (let i = 0; i < 100; i++) {
+    const x = Math.random() * (MAP_WIDTH - 100) + 50;
+    const y = Math.random() * (MAP_HEIGHT - 100) + 50;
+    
+    // Ensure chests don't spawn inside obstacles
+    let hitObs = false;
+    for (const obs of obstacles) {
+      if (x > obs.x - 50 && x < obs.x + obs.width + 50 && y > obs.y - 50 && y < obs.y + obs.height + 50) {
+        hitObs = true;
+        break;
+      }
+    }
+    
+    if (!hitObs) {
+      chests.push({
+        id: Math.random(),
+        x,
+        y,
+        radius: 20,
+        opened: false,
+      });
+    }
+  }
+
   const enemies = spawnInitialEnemies(obstacles);
 
   return {
-    player: { x: MAP_WIDTH / 2, y: MAP_HEIGHT / 2, radius: 16, speed: 250, hp: 100, maxHp: 100 },
+    player: { x: MAP_WIDTH / 2, y: MAP_HEIGHT / 2, radius: 16, speed: 250, hp: 100, maxHp: 100, weapon: { type: 'pistol', level: 1 } },
     keys: { w: false, a: false, s: false, d: false },
     enemies,
     bullets: [],
     coins: [],
+    chests,
+    droppedWeapons: [],
+    droppedTreasures: [],
+    inventory: createInventory(20),
+    lasers: [],
+    activeChestId: null,
+    activeWeaponDropId: null,
+    activeTreasureDropId: null,
     obstacles,
     extraction,
     extractionTimer: 0,
@@ -48,9 +83,10 @@ export const createInitialState = (): GameState => {
     lastFireDir: { x: 1, y: 0 },
     isFiring: false,
     coinsCollected: 0,
-    status: 'playing',
+    status: 'menu',
     camera: { x: 0, y: 0 },
     enemySpawnTimer: 0,
     gameStartTime: Date.now(),
+    quest: generateQuest(1),
   };
 };

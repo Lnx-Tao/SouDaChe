@@ -1,5 +1,20 @@
-import { GameState, MAP_WIDTH, MAP_HEIGHT } from '../types';
+import { GameState, MAP_WIDTH, MAP_HEIGHT, Weapon } from '../types';
 import { resolveCollision, lineIntersectsRect } from './physics';
+import { getPistolStats, firePistol } from './weapons/pistol';
+import { getShotgunStats, fireShotgun } from './weapons/shotgun';
+import { getLaserStats, fireLaser } from './weapons/laser';
+
+export const getWeaponStats = (weapon: Weapon) => {
+  const { type, level } = weapon;
+  if (type === 'pistol') {
+    return getPistolStats(level);
+  } else if (type === 'shotgun') {
+    return getShotgunStats(level);
+  } else if (type === 'laser') {
+    return getLaserStats(level);
+  }
+  return getPistolStats(1);
+};
 
 export const updatePlayer = (state: GameState, dt: number, canvasWidth: number, canvasHeight: number) => {
   let dx = 0;
@@ -23,8 +38,10 @@ export const updatePlayer = (state: GameState, dt: number, canvasWidth: number, 
 
   // Firing logic
   if (state.isFiring) {
-    const now = performance.now();
-    if (now - state.lastFireTime >= 250) {
+    const now = Date.now();
+    const weaponStats = getWeaponStats(state.player.weapon);
+    
+    if (now - state.lastFireTime >= weaponStats.fireRate) {
       let nearestEnemy = null;
       let minDst = Infinity;
       for (const e of state.enemies) {
@@ -57,18 +74,19 @@ export const updatePlayer = (state: GameState, dt: number, canvasWidth: number, 
         state.lastFireDir = { x: edx / dist, y: edy / dist };
       }
 
-      const vx = state.lastFireDir.x * 800; // bullet speed
-      const vy = state.lastFireDir.y * 800;
+      const dirX = state.lastFireDir.x;
+      const dirY = state.lastFireDir.y;
 
-      state.bullets.push({
-        id: Math.random(),
-        x: state.player.x,
-        y: state.player.y,
-        vx,
-        vy,
-        radius: 6,
-        damage: 25,
-      });
+      if (state.player.weapon.type === 'pistol') {
+        firePistol(state, dirX, dirY, weaponStats.damage);
+      } else if (state.player.weapon.type === 'shotgun') {
+        const stats = weaponStats as ReturnType<typeof getShotgunStats>;
+        fireShotgun(state, dirX, dirY, stats.damage, stats.bullets, stats.spread);
+      } else if (state.player.weapon.type === 'laser') {
+        const stats = weaponStats as ReturnType<typeof getLaserStats>;
+        fireLaser(state, dirX, dirY, stats.damage, stats.width, stats.bounces);
+      }
+
       state.lastFireTime = now;
     }
   }
